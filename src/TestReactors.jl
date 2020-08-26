@@ -200,6 +200,37 @@ end;
 
 
 
+@testset "Multi-domain ConstantV sensitivity analysis" begin
+    phaseDict = readinput("../src/testing/superminimal.rms")
+    spcs = phaseDict["phase"]["Species"]
+    rxns = phaseDict["phase"]["Reactions"]
+    ig = IdealGas(spcs,rxns,name="phase")
+    
+    initialcondsV = Dict(["T"=>1000.0,"P"=>10.0e5,"H2"=>0.67,"O2"=>0.33]) 
+    domainV,y0V,pV = ConstantVDomain(phase=ig,initialconds=initialcondsV) #Define the domain (encodes how system thermodynamic properties calculated)
+    
+    reactV = Reactor(domainV,y0V,(0.0,0.037);p=pV) #Create the reactor object
+    solV = solve(reactV.ode,CVODE_BDF(),abstol=1e-16,reltol=1e-6); #solve the ode associated with the reactor
+    simV = Simulation(solV,domainV)
+    
+    initialcondsV1 = Dict(["T"=>1000.0,"P"=>10.0e5,"H2"=>0.67,"O2"=>0.33]) 
+    domainV1,y0V1,pV1 = ConstantVDomain(phase=ig,initialconds=initialcondsV1) #Define the domain (encodes how system thermodynamic properties calculated)
+    initialcondsV2 = Dict(["T"=>1000.0,"P"=>10.0e5,"H2"=>0.67,"O2"=>0.33]) 
+    domainV2,y0V2,pV2 = ConstantVDomain(phase=ig,initialconds=initialcondsV2) #Define the domain (encodes how system thermodynamic properties calculated)
+    
+    react,y0,p = Reactor((domainV1,domainV2),(y0V1,y0V2),(0.0,0.037),[],(pV1,pV2));
+    sol = solve(react.ode,CVODE_BDF(),abstol=1e-16,reltol=1e-6);
+    sysim = SystemSimulation(sol,(domainV1,domainV2),p);
+    
+    t = 0.03
+    @test sol(t)[1:length(spcs)] ≈ solV(t)[1:end-2] rtol=1e-5
+    @test sol(t)[length(spcs)+1:end-4] ≈ solV(t)[1:end-2] rtol=1e-5
+    
+    dpsV = getadjointsensitivities(simV,"H2",CVODE_BDF();sensealg=InterpolatingAdjoint(autojacvec=ReverseDiffVJP(true)),abstol=1e-16,reltol=1e-6)
+    dps = getadjointsensitivities(sysim,sysim.sims[1],"H2",CVODE_BDF();sensealg=InterpolatingAdjoint(autojacvec=ReverseDiffVJP(true)),abstol=1e-16,reltol=1e-6)
+    @test dpsV ≈ dps rtol=1e-4
+end;
+
 @testset "Multi-domain ConstantV and ConstantTP simulation" begin
     phaseDict = readinput("../src/testing/superminimal.rms")
     spcs = phaseDict["phase"]["Species"]
