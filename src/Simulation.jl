@@ -172,18 +172,22 @@ function getadjointsensitivities(bsol::Q,target::String,solver::W;sensalg::W2=In
 end
 
 function getadjointsensitivities(syssim::Q,bsol::W3,target::String,solver::W;sensalg::W2=InterpolatingAdjoint(autojacvec=ReverseDiffVJP(true)),abstol::Float64=1e-6,reltol::Float64=1e-3,kwargs...) where {Q,W,W2,W3}
-    @assert target in bsol.names || target in ["T","V"]
-    if target in ["T","V"]
+    @assert target in bsol.names || target in ["T","V","P"]
+    if target in ["T","V","P"]
         ind = bsol.domain.indexes[end]
     else
-        ind = findfirst(isequal(target),bsol.names)
+        ind = findfirst(isequal(target),bsol.names)+bsol.domain.indexes[1]-1
     end
-    domains = [x.domain for x in syssim.domains]
+    domains = Tuple([x.domain for x in syssim.sims])
     function g(y::X,p::Array{Y,1},t::Z) where {Q,V,X,Y<:Float64,Z} 
         dy = similar(y,length(y))
         return dydtreactor!(dy,y,t,domains,[],p=p)[ind]
     end
     function g(y::Array{X,1},p::Y,t::Z) where {Q,V,X<:Float64,Y,Z} 
+        dy = similar(p,length(y))
+        return dydtreactor!(dy,y,t,domains,[],p=p)[ind]
+    end
+    function g(y::Array{Float64,1},p::Array{Float64,1},t::Z) where {Q,V,Z} 
         dy = similar(p,length(y))
         return dydtreactor!(dy,y,t,domains,[],p=p)[ind]
     end
@@ -195,10 +199,10 @@ function getadjointsensitivities(syssim::Q,bsol::W3,target::String,solver::W;sen
     dgdp(out, y, p, t) = ForwardDiff.gradient!(out, p -> g(y, p, t), p)
     du0,dpadj = adjoint_sensitivities(syssim.sol,solver,g,nothing,(dgdu,dgdp);sensealg=sensalg,abstol=abstol,reltol=reltol,kwargs...)
     for domain in domains
-        dpadj[domain.parameterindexes[1]+length(domain.phase.species):domain.parameterindexes[2]] .*= bsol.domain.p[domain.parameterindexes[1]+length(domain.phase.species):domain.parameterindexes[2]]
+       dpadj[domain.parameterindexes[1]+length(domain.phase.species):domain.parameterindexes[2]] .*= syssim.p[domain.parameterindexes[1]+length(domain.phase.species):domain.parameterindexes[2]]
     end
-    if !(target in ["T","V"])
-        dpadj ./= bsol.sol(bsol.sol.t[end])[ind]
+    if !(target in ["T","V","P"])
+       dpadj ./= bsol.sol(bsol.sol.t[end])[ind]
     end
     return dpadj
 end
