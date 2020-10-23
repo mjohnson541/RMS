@@ -83,3 +83,62 @@ function analyzespecies(spc,sim,t)
     println("\t$name H298: $H298 kcal/mol")
 end
 
+"""
+This calculates the collision limit of H + H -> H2 as an upper bound
+"""
+function calccollisionlimit(T)
+    mu = 0.00050397
+    sigma = 2.05e-10
+    epsilon = 1205.6
+    Tr = T*kB*Na/epsilon
+    collintegral = 1.16145*Tr^(-0.14874)+0.52487*exp(-0.7732 * Tr)+2.16178*exp(-2.437887*Tr)
+    kcoll = sqrt(8.0*pi*kB*T*Na/mu)*sigma^2*collintegral*Na
+    return kcoll
+end
+
+"""
+Compares bimolecular and trimolecular reactions with the collision limit for H+H->H2 
+to check whether they are physical, a report with only a title and kcoll means no violators
+"""
+function analyzecolllimit(phase,Tmin,Tmax,Pmin,Pmax)
+    println("Collision Limit Report (Comparisons are done with collision limit for H+H->H2)")
+    println("kcoll=$kcoll")
+    for T in [Tmin,Tmax]
+        for P in [Pmin,Pmax]
+            kcoll = calccollisionlimit(T)
+            cpdivR,hdivRT,sdivR = calcHSCpdless(phase.vecthermo,T)
+            Gs = (hdivRT.-sdivR)*(R*T)
+            if sim.domain.phase.diffusionlimited
+                diffs = getfield.(sim.domain.phase.species,:diffusion)(T=T,mu=0.0,P=P)
+            else
+                diffs = Array{Float64,1}()
+            end
+            kfs,krevs = getkfkrevs(phase,T,P,P/(R*T),1.0,Gs,diffs,V=1.0/C))
+            for (i,rxn) in enumerate(phase.reactions)
+                boo = false
+                if len(rxn.reactants) > 2
+                    if kfs[i] > kcoll
+                        if !boo
+                            println(getrxnstr(rxn))
+                            boo = true
+                        end
+                        kf = kfs[i]
+                        ratio = kfs[i]/kcoll
+                        println("Violated in forward direction kf=$kf ratio=$ratio T=$T P=$P")
+                    end
+                end
+                if len(rxn.products) > 2
+                    if krevs[i] > kcoll
+                        if !boo
+                            println(getrxnstr(rxn))
+                            boo = true
+                        end
+                        krev = krevs[i]
+                        ratio = krevs[i]/kcoll
+                        println("Violated in forward direction krev=$krev ratio=$ratio T=$T P=$P")
+                    end
+                end
+            end
+        end
+    end
+end
