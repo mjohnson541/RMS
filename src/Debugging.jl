@@ -113,7 +113,7 @@ function analyzecolllimit(phase,Tmin,Tmax,Pmin,Pmax)
             else
                 diffs = Array{Float64,1}()
             end
-            kfs,krevs = getkfkrevs(phase,T,P,P/(R*T),1.0,Gs,diffs,V=1.0/C))
+            kfs,krevs = getkfkrevs(phase,T,P,P/(R*T),1.0,Gs,diffs,V=1.0/C)
             for (i,rxn) in enumerate(phase.reactions)
                 boo = false
                 if len(rxn.reactants) > 2
