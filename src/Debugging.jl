@@ -12,7 +12,7 @@ function analyzecrash(sim::Simulation;tol=1e6)
     rts = rates(sim,t)
     rmedian = median(abs.([rt for rt in rts if !isnan(rt) && rt != 0.0]))
     dydt = zeros(length(sim.sol.u[end]))
-    dydtreactor!(dydt,sol.u[end],0.0,sim.domain,[];p=sim.domain.p)
+    dydtreactor!(dydt,sim.sol.u[end],0.0,sim.domain,[];p=sim.domain.p)
     dymedian = median(abs.([dy for dy in dydt if !isnan(dy) && dy != 0.0]))
     y = sim.sol(t)
     p = sim.domain.p
