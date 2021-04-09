@@ -21,12 +21,12 @@ function analyzecrash(sim::Simulation;tol=1e6)
     for (i,rt) in enumerate(rts)
         if isnan(rt)
             println("NaN for Reaction:")
-            ind = findfirst(x->x==rxn,sim.domain.phase.reactions)
+            ind = findfirst(x->x==sim.domain.phase.reactions[i],sim.domain.phase.reactions)
             analyzereaction(sim.domain.phase.reactions[i],sim,t,kfs[ind],krevs[ind])
         elseif abs(rt/rmedian) > tol
             ratio = abs(rt/rmedian)
             println("rt/rmedian > $tol, rt=$rt, rt/rmedian=$ratio \nReaction:")
-            ind = findfirst(x->x==rxn,sim.domain.phase.reactions)
+            ind = findfirst(x->x==sim.domain.phase.reactions[i],sim.domain.phase.reactions)
             analyzereaction(sim.domain.phase.reactions[i],sim,t,kfs[ind],krevs[ind])
         end
     end
@@ -44,6 +44,7 @@ function analyzecrash(sim::Simulation;tol=1e6)
         end
     end
 end
+export analyzecrash
 
 function analyzereaction(rxn,sim,t,kf,krev)
     println(getrxnstr(rxn))
@@ -76,12 +77,15 @@ function analyzereaction(rxn,sim,t,kf,krev)
         analyzespecies(product,sim,t)
     end
 end
+export analyzereaction
 
 function analyzespecies(spc,sim,t)
     H298 = getEnthalpy(spc.thermo,298.0)/4184.0
     name = spc.name
     println("\t$name H298: $H298 kcal/mol")
 end
+
+export analyzespecies
 
 """
 This calculates the collision limit of H + H -> H2 as an upper bound
@@ -95,6 +99,8 @@ function calccollisionlimit(T)
     kcoll = sqrt(8.0*pi*kB*T*Na/mu)*sigma^2*collintegral*Na
     return kcoll
 end
+
+export calccollisionlimit
 
 """
 Compares bimolecular and trimolecular reactions with the collision limit for H+H->H2 
@@ -142,3 +148,5 @@ function analyzecolllimit(phase,Tmin,Tmax,Pmin,Pmax)
         end
     end
 end
+
+export analyzecolllimit
