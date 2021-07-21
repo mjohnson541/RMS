@@ -243,3 +243,33 @@ struct Outlet{V} <: AbstractBoundaryInterface
     F::Function
 end
 export Outlet
+
+
+struct Condensation{S,V<:AbstractArray,U<:Real,X<:Real} <: AbstractBoundaryInterface
+    domain::S
+    x_vap::V
+    T_vap::U
+    P_vap::X
+    kLA::Array{Float64,1}
+    kH::Array{Float64,1}
+end
+
+function Condensation(domain::V,conddict::Dict{String,X},kLA::Array{Float64,1},kH::Array{Float64,1}) where {V,X<:Real}
+    y = makespcsvector(domain.phase,conddict)
+    T_vap = conddict["T"]
+    P_vap = conddict["P"]
+    x_vap = y./sum(y)
+    return Condensation(domain,x_vap,T_vap,P_vap,kLA,kH)
+end
+
+export Condensation
+
+struct Evaporation{V} <: AbstractBoundaryInterface
+    domain::V
+    kLA::Array{Float64,1}
+    kH::Array{Float64,1}
+end
+
+export Evaporation
+
+
