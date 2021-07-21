@@ -1872,6 +1872,7 @@ end
             flow = inter.F(t)
             @simd for i in domain.indexes[1]:domain.indexes[2]
                 @inbounds @fastmath jac[i,i] -= flow/N
+                @inbounds @fastmath jac[i,:] .+= flow*ns[i]/(N*N)
             end
         elseif isa(inter,Evaporation) && domain == inter.domain
             @simd for i in domain.indexes[1]:domain.indexes[2]
