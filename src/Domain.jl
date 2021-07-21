@@ -1427,6 +1427,10 @@ export calcthermo
             dydt[d.indexes[1]:d.indexes[2]] .+= inter.y.*inter.F(t)
         elseif isa(inter,Outlet) && d == inter.domain
             dydt[d.indexes[1]:d.indexes[2]] .-= inter.F(t).*ns./N
+        elseif isa(inter,Condensation) && d == inter.domain
+            dydt[d.indexes[1]:d.indexes[2]] .+= inter.kLA./inter.kH.*inter.x_vap*inter.P_vap*V/R/inter.T_vap
+        elseif isa(inter,Evaporation) && d == inter.domain
+            dydt[d.indexes[1]:d.indexes[2]] .-= inter.kLA./inter.kH.*ns
         end
     end
 end
@@ -1868,6 +1872,10 @@ function jacobiany!(jac::Q,y::U,p::W,t::Z,domain::D,interfaces::Q3,colorvec::Q2=
             flow = inter.F(t)
             @simd for i in domain.indexes[1]:domain.indexes[2]
                 @inbounds @fastmath jac[i,i] -= flow/N
+            end
+        elseif isa(inter,Evaporation) && domain == inter.domain
+            @simd for i in domain.indexes[1]:domain.indexes[2]
+                @inbounds @fastmath jac[i,i] -= inter.kLA[i]/inter.kH[i]
             end
         end
     end
