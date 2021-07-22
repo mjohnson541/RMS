@@ -267,7 +267,6 @@ export Condensation
 struct Evaporation{V} <: AbstractBoundaryInterface
     domain::V
     kLA::Array{Float64,1}
-    kH::Array{Float64,1}
 end
 
 export Evaporation

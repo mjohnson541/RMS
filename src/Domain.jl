@@ -1430,7 +1430,7 @@ export calcthermo
         elseif isa(inter,Condensation) && d == inter.domain
             dydt[d.indexes[1]:d.indexes[2]] .+= inter.kLA./inter.kH.*inter.x_vap*inter.P_vap*V/R/inter.T_vap
         elseif isa(inter,Evaporation) && d == inter.domain
-            dydt[d.indexes[1]:d.indexes[2]] .-= inter.kLA./inter.kH.*ns
+            dydt[d.indexes[1]:d.indexes[2]] .-= inter.kLA.*ns
         end
     end
 end
@@ -1876,7 +1876,7 @@ end
             end
         elseif isa(inter,Evaporation) && domain == inter.domain
             @simd for i in domain.indexes[1]:domain.indexes[2]
-                @inbounds @fastmath jac[i,i] -= inter.kLA[i]/inter.kH[i]
+                @inbounds @fastmath jac[i,i] -= inter.kLA[i]
             end
         end
     end
